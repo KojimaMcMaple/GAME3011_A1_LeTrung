@@ -16,23 +16,32 @@ public class InteractiveTilemapController : MonoBehaviour
     [SerializeField] private InteractMode mode_ = InteractMode.kScan;
     [SerializeField] private Tilemap interact_map_;
     [SerializeField] private TileBase highlight_tile_;
-    [SerializeField] private Slider clicks_slider_;
-    [SerializeField] private TMP_Text clicks_txt_;
+    [SerializeField] private Slider scans_slider_;
+    [SerializeField] private TMP_Text scans_txt_;
+    [SerializeField] private Slider extracts_slider_;
+    [SerializeField] private TMP_Text extracts_txt_;
     [SerializeField] private TMP_Text resources_txt_;
     [SerializeField] private TMP_Text interact_mode_btn_txt_;
+    [SerializeField] private TMP_InputField info_txtfield_;
     private Grid grid_;
     private Vector3Int prev_tile_coord_ = Vector3Int.zero;
     private ResourceManager resource_manager_;
-    private int clicks_ = 6;
-    private int max_clicks_ = 6;
+    private int scans_ = 6;
+    private int max_scans_ = 6;
+    private int extracts_ = 3;
+    private int max_extracts_ = 3;
     private int resources_ = 0;
 
     void Awake()
     {
         grid_ = FindObjectOfType<Grid>();
         resource_manager_ = FindObjectOfType<ResourceManager>();
-        clicks_txt_.text = "Clicks: " + clicks_;
+        mode_ = InteractMode.kScan;
+        scans_txt_.text = "Scans remaining: " + scans_;
+        extracts_txt_.text = "Extracts remaining: " + extracts_;
         resources_txt_.text = "Resources: " + resources_;
+        info_txtfield_.interactable = false;
+        info_txtfield_.text = "> Press Scan Mode to toggle\nbetween that and Extract Mode.";
     }
 
     void Update()
@@ -53,33 +62,54 @@ public class InteractiveTilemapController : MonoBehaviour
             switch (mode_)
             {
                 case InteractMode.kScan:
-                    if (clicks_ > 0)
+                    if (scans_ > 0)
                     {
                         bool result = resource_manager_.RevealResourceAtCoords(tile_coords.x, tile_coords.y);
                         if (result)
                         {
-                            clicks_--;
-                            clicks_txt_.text = "Clicks: " + clicks_;
-                            clicks_slider_.value = (float)clicks_ / (float)max_clicks_;
+                            scans_--;
+                            scans_txt_.text = "Scans remaining: " + scans_;
+                            scans_slider_.value = (float)scans_ / (float)max_scans_;
                         }
+                    }
+                    else
+                    {
+                        info_txtfield_.text = "> No scans remaining!\n" + info_txtfield_.text;
                     }
                     break;
                 case InteractMode.kExtract:
-                    int tier = resource_manager_.GetTierAndDepleteResource(tile_coords.x, tile_coords.y);
-                    Debug.Log(">>> Extracting tier " + tier.ToString());
-                    if (tier == 1)
+                    if (extracts_ > 0)
                     {
-                        resources_ += 500;
+                        int tier = resource_manager_.GetTierAndDepleteResource(tile_coords.x, tile_coords.y);
+                        Debug.Log(">>> Extracting tier " + tier.ToString());
+                        if (tier == 1)
+                        {
+                            resources_ += 500;
+                            info_txtfield_.text = "> Resource gained: 500.\n" + info_txtfield_.text;
+                        }
+                        else if (tier == 2)
+                        {
+                            resources_ += 250;
+                            info_txtfield_.text = "> Resource gained: 250.\n" + info_txtfield_.text;
+                        }
+                        else if (tier == 3)
+                        {
+                            resources_ += 125;
+                            info_txtfield_.text = "> Resource gained: 125.\n" + info_txtfield_.text;
+                        }
+
+                        if (tier != 0)
+                        {
+                            extracts_--;
+                            extracts_txt_.text = "Scans remaining: " + extracts_;
+                            extracts_slider_.value = (float)extracts_ / (float)max_extracts_;
+                            resources_txt_.text = "Resources: " + resources_;
+                        }
                     }
-                    else if (tier == 2)
+                    else
                     {
-                        resources_ += 250;
+                        info_txtfield_.text = "> No extracts remaining!\n" + info_txtfield_.text;
                     }
-                    else if (tier == 3)
-                    {
-                        resources_ += 125;
-                    }
-                    resources_txt_.text = "Resources: " + resources_;
                     break;
                 default:
                     break;
