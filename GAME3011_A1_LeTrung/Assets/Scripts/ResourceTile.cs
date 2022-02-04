@@ -72,9 +72,27 @@ public class ResourceTile
         return false;
     }
 
-    public void DoDepleteResource()
+    public int GetTierFromCoords(int x, int y)
     {
-        reserve_amount--;
-
+        if (x == tier1.x && y == tier1.y)
+        {
+            //return 1;
+            return (reserve_amount - 4) * -1; //return tier based on reserve_amount
+        }
+        foreach (Vector2Int v in tier2)
+        {
+            if (x == v.x && y == v.y)
+            {
+                return (reserve_amount - 5) * -1; //return tier based on reserve_amount
+            }
+        }
+        foreach (Vector2Int v in tier3)
+        {
+            if (x == v.x && y == v.y)
+            {
+                return 3;
+            }
+        }
+        return 0;
     }
 }

@@ -7,9 +7,11 @@ public class ResourceManager : MonoBehaviour
 {
     [SerializeField] private Tilemap ground_map_;
     [SerializeField] private Tilemap resource_map_;
+    [SerializeField] private Tilemap fog_map_;
     [SerializeField] private TileBase tier1_tile_;
     [SerializeField] private TileBase tier2_tile_;
     [SerializeField] private TileBase tier3_tile_;
+    [SerializeField] private TileBase fog_tile_;
     [SerializeField] private int max_resource_count_ = 10;
     private int resource_count_ = 0;
     private Vector2Int min_coords_; 
@@ -32,10 +34,23 @@ public class ResourceManager : MonoBehaviour
         tile_list_ = new List<ResourceTile>();
 
         PopulateResourceMap();
+        SetTilesForFogMap();
+    }
+
+    private void SetTilesForFogMap()
+    {
+        for (int j = min_coords_.y; j <= max_coords_.y; j++)
+        {
+            for (int i = min_coords_.x; i <= max_coords_.x; i++)
+            {
+                fog_map_.SetTile(new Vector3Int(i, j, 0), fog_tile_);
+            }
+        }
     }
 
     private void PopulateResourceMap()
     {
+        resource_count_ = 0;
         List<Vector2Int> used_tiles = new List<Vector2Int>();
         for (int i = 0; i < max_resource_count_; i++)
         {
@@ -52,10 +67,10 @@ public class ResourceManager : MonoBehaviour
                 }
             }
         }
-        RevealResourceMap();
+        SetTilesForResourceMap();
     }
 
-    public void RevealResourceMap()
+    public void SetTilesForResourceMap()
     {
         foreach (ResourceTile rt in tile_list_)
         {
@@ -72,6 +87,27 @@ public class ResourceManager : MonoBehaviour
                 resource_map_.SetTile(new Vector3Int(v.x, v.y, 0), tier3_tile_);
             }
         }
+    }
+
+    public bool RevealResourceAtCoords(int x, int y)
+    {
+        if (x >= min_coords_.x && x <= max_coords_.x &&
+            y >= min_coords_.y && y <= max_coords_.y)
+        {
+            for (int j = y - 1; j <= y + 1; j++)
+            {
+                for (int i = x - 1; i <= x + 1; i++)
+                {
+                    if (i >= min_coords_.x && i <= max_coords_.x &&
+                        j >= min_coords_.y && j <= max_coords_.y)
+                    {
+                        fog_map_.SetTile(new Vector3Int(i, j, 0), null);
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     public bool HasCoordsInList(int x, int y, List<Vector2Int> list)
@@ -115,41 +151,44 @@ public class ResourceManager : MonoBehaviour
         return null;
     }
 
-    public void TryDepleteResource(int x, int y)
+    public int GetTierAndDepleteResource(int x, int y)
     {
         ResourceTile tile = GetTileFromCoords(x, y);
-        if (tile != null)
+        if (tile == null)
         {
-            tile.reserve_amount--;
-            if (tile.reserve_amount == 2)
-            {
-                foreach (Vector2Int v in tile.tier3)
-                {
-                    resource_map_.SetTile(new Vector3Int(v.x, v.y, 0), null);
-                }
-                foreach (Vector2Int v in tile.tier2)
-                {
-                    resource_map_.SetTile(new Vector3Int(v.x, v.y, 0), tier3_tile_);
-                }
-                resource_map_.SetTile(new Vector3Int(tile.tier1.x, tile.tier1.y, 0), tier2_tile_);
-
-                tile.tier3.Clear();
-            }
-            else if (tile.reserve_amount == 1)
-            {
-                foreach (Vector2Int v in tile.tier2)
-                {
-                    resource_map_.SetTile(new Vector3Int(v.x, v.y, 0), null);
-                }
-                resource_map_.SetTile(new Vector3Int(tile.tier1.x, tile.tier1.y, 0), tier3_tile_);
-
-                tile.tier2.Clear();
-            }
-            else if (tile.reserve_amount == 0)
-            {
-                resource_map_.SetTile(new Vector3Int(tile.tier1.x, tile.tier1.y, 0), null);
-            }
+            return 0;
         }
+        int tier = tile.GetTierFromCoords(x, y);
+        tile.reserve_amount--;
+        if (tile.reserve_amount == 2)
+        {
+            foreach (Vector2Int v in tile.tier3)
+            {
+                resource_map_.SetTile(new Vector3Int(v.x, v.y, 0), null);
+            }
+            foreach (Vector2Int v in tile.tier2)
+            {
+                resource_map_.SetTile(new Vector3Int(v.x, v.y, 0), tier3_tile_);
+            }
+            resource_map_.SetTile(new Vector3Int(tile.tier1.x, tile.tier1.y, 0), tier2_tile_);
+
+            tile.tier3.Clear();
+        }
+        else if (tile.reserve_amount == 1)
+        {
+            foreach (Vector2Int v in tile.tier2)
+            {
+                resource_map_.SetTile(new Vector3Int(v.x, v.y, 0), null);
+            }
+            resource_map_.SetTile(new Vector3Int(tile.tier1.x, tile.tier1.y, 0), tier3_tile_);
+
+            tile.tier2.Clear();
+        }
+        else if (tile.reserve_amount == 0)
+        {
+            resource_map_.SetTile(new Vector3Int(tile.tier1.x, tile.tier1.y, 0), null);
+        }
+        return tier;
     }
 }
 
