@@ -10,7 +10,7 @@ public class ResourceTile
     public Vector2Int tile_size = new Vector2Int(5,5); //how many tiles it occupies
     public int reserve_amount = 3;
 
-    ResourceTile(int x, int y, Vector2Int min_coords, Vector2Int max_coords)
+    public ResourceTile(int x, int y, Vector2Int min_coords, Vector2Int max_coords)
     {
         tier1 = new Vector2Int(x, y);
 
@@ -22,10 +22,13 @@ public class ResourceTile
             for (int i = 0; i < 3; i++)
             {
                 Vector2Int coords = new Vector2Int(tier2_min_coords.x + i, tier2_min_coords.y + j);
-                if ((coords.x != x && coords.y != y) && 
-                    coords.x >= min_coords.x && coords.x <= max_coords.x &&
+                if (coords.x >= min_coords.x && coords.x <= max_coords.x &&
                     coords.y >= min_coords.y && coords.y <= max_coords.y)
                 {
+                    if (coords.x == x && coords.y == y)
+                    {
+                        continue; //skip if within tier1
+                    }
                     tier2.Add(coords);
                 }
             }
@@ -50,5 +53,28 @@ public class ResourceTile
                 }
             }
         }
+    }
+
+    public bool HasCoordsInTile(int x, int y)
+    {
+        int tile_size = reserve_amount - 1;
+        if (tile_size < 0) //no reserve
+        {
+            return false;
+        }
+        Vector2Int tier1_min_coords = new Vector2Int(tier1.x - tile_size, tier1.y - tile_size);
+        Vector2Int tier1_max_coords = new Vector2Int(tier1.x + tile_size, tier1.y + tile_size);
+        if (x >= tier1_min_coords.x && x <= tier1_max_coords.x &&
+            y >= tier1_min_coords.y && y <= tier1_max_coords.y)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public void DoDepleteResource()
+    {
+        reserve_amount--;
+
     }
 }
